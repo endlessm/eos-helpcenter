@@ -189,6 +189,9 @@ APT_OPTS=(
 
 # Packages to install in the checkout for the build
 BUILD_PKGS=(
+    gir1.2-gnomedesktop-3.0
+    python3-gi
+    python3-jinja2
     yelp-tools
 )
 
@@ -201,6 +204,8 @@ bwrap "${BWRAP_ROOT_OPTS[@]}" \
 BUILD_FILES=(
     "$SRCDIR"/endless-customizations.xsl
     "$SRCDIR"/generate-html-docs.sh
+    "$SRCDIR"/generate-index.py
+    "$SRCDIR"/index.html
 )
 rm -rf "$BUILD"
 mkdir "$BUILD"
@@ -209,6 +214,9 @@ cp -a "${BUILD_FILES[@]}" "$BUILD"
 
 echo "Generating HTML documentation"
 bwrap "${BWRAP_BUILD_OPTS[@]}" /build/generate-html-docs.sh
+
+echo "Generating HTML index"
+bwrap "${BWRAP_BUILD_OPTS[@]}" /build/generate-index.py
 
 # We want to make the tarball files owned by root:root instead of the
 # random UID this script is running as.
