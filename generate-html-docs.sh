@@ -1,7 +1,8 @@
 #!/bin/bash -e
 
-XSL=/build/endless-customizations.xsl
-DEST=/build/html
+SRCDIR=$(dirname "$0")
+DEST="$SRCDIR/build"
+XSL="$SRCDIR/endless-customizations.xsl"
 
 function show_need_yelp() {
     echo "  ERROR: this script requires 'yelp-build'"
@@ -82,5 +83,5 @@ for asset in css img; do
 done
 
 echo ""
-echo "  Finished. Documentation is in html/ folder."
+echo "  Finished. Documentation is in $DEST folder."
 echo ""
