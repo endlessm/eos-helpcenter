@@ -56,6 +56,12 @@ echo ""
 # XSLT path for finding Endless yelp-xsl components
 xslt_path=/usr/share/yelp-xsl/xslt/common/domains
 
+# Delete existing build directory
+if [ -d "$DEST" ]; then
+    echo "  Deleting existing documentation in $DEST"
+    rm -rf "$DEST"
+fi
+
 # Start generating documentation
 echo "  Generating documentation in $DEST..."
 for doc_path in /usr/share/help/*/gnome-help; do
