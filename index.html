@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Endless OS Help Center</title>
+    <link rel="stylesheet" href="css/bootstrap.min.css" type="text/css">
+    <link rel="stylesheet" href="css/eos-help-center-style.css" type="text/css">
+    <link rel="stylesheet" href="css/article-style.css" type="text/css">
+  </head>
+  <body>
+    <main>
+      <div class="page">
+        <h1>Endless OS Help Center Languages</h1>
+        <ul class="list">
+          {%- for language, entry in catalogs %}
+          <li><a href="{{ entry }}/index.html">{{ language }}</a></li>
+          {%- endfor %}
+        </ul>
+      </div>
+    </main>
+  </body>
+</html>

@@ -1,0 +1,13 @@
+ARG BRANCH=master
+FROM registry.endlessm-sf.com/eos:${BRANCH}
+RUN apt-get update && \
+    apt-get -y install \
+        awscli \
+        gir1.2-gnomedesktop-3.0 \
+        gnome-getting-started-docs \
+        gnome-user-guide \
+        python3-gi \
+        python3-jinja2 \
+        yelp-tools \
+        && \
+    apt-get clean

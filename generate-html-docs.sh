@@ -1,7 +1,8 @@
 #!/bin/bash -e
 
-XSL=/build/endless-customizations.xsl
-DEST=/build/html
+SRCDIR=$(dirname "$0")
+DEST="$SRCDIR/build"
+XSL="$SRCDIR/endless-customizations.xsl"
 
 function show_need_yelp() {
     echo "  ERROR: this script requires 'yelp-build'"
@@ -55,6 +56,12 @@ echo ""
 # XSLT path for finding Endless yelp-xsl components
 xslt_path=/usr/share/yelp-xsl/xslt/common/domains
 
+# Delete existing build directory
+if [ -d "$DEST" ]; then
+    echo "  Deleting existing documentation in $DEST"
+    rm -rf "$DEST"
+fi
+
 # Start generating documentation
 echo "  Generating documentation in $DEST..."
 for doc_path in /usr/share/help/*/gnome-help; do
@@ -82,5 +89,5 @@ for asset in css img; do
 done
 
 echo ""
-echo "  Finished. Documentation is in html/ folder."
+echo "  Finished. Documentation is in $DEST folder."
 echo ""
