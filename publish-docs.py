@@ -5,6 +5,7 @@ import boto3
 import hashlib
 import logging
 import os
+import time
 
 logger = logging.getLogger(os.path.basename(__file__))
 
@@ -13,6 +14,8 @@ BUILDDIR = os.path.join(SRCDIR, 'build')
 
 ap = ArgumentParser('Publish HTML documentation to S3 bucket')
 ap.add_argument('bucket', metavar='BUCKET', help='S3 bucket name')
+ap.add_argument('-c', '--cloudfront',
+                help='CloudFront distribution ID for invalidation')
 ap.add_argument('-d', '--builddir', default=BUILDDIR,
                 help='path to HTML build directory (default: %(default)s)')
 ap.add_argument('--region', help='AWS region of the S3 bucket')
@@ -101,3 +104,44 @@ for key in objects.keys() - docs.keys():
 
 if len(changed) == 0:
     logger.info('All objects up to date')
+elif args.cloudfront:
+    # CloudFront is regionless, so don't specify a region.
+    cloudfront = boto3.client('cloudfront')
+
+    # Build the paths to invalidate.
+    paths = []
+    for key in changed:
+        path = f'/{key}'
+        logger.info(f'Adding invalidation path {path}')
+        paths.append(path)
+
+        # The S3 bucket is setup for static website hosting with any
+        # URLs ending in / being treated as /index.html. Invalidate the
+        # nameless path, too.
+        if os.path.basename(path) == 'index.html':
+            keydir = os.path.dirname(path)
+            if keydir != '/':
+                keydir += '/'
+            logger.info(f'Adding invalidation path {keydir}')
+            paths.append(keydir)
+
+    # Make a unique CallerReference value from the current time.
+    caller_ref = str(time.time_ns())
+
+    # Create the CloudFront invalidation.
+    logger.info(f'Invalidating CloudFront distribution {args.cloudfront}')
+    if not args.dry_run:
+        resp = cloudfront.create_invalidation(
+            DistributionId=args.cloudfront,
+            InvalidationBatch={
+                'Paths': {
+                    'Quantity': len(paths),
+                    'Items': paths
+                },
+                'CallerReference': caller_ref
+            }
+        )
+        logger.debug(
+            f'Created invalidation {resp["Invalidation"]["Id"]} '
+            f'({resp["Location"]})'
+        )
