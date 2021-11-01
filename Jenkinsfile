@@ -20,7 +20,7 @@ pipeline {
                                   credentialsId: 'iam-user-jenkins-jobs',
                                   accessKeyVariable: 'AWS_ACCESS_KEY_ID',
                                   secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
-                    sh "./publish-docs.sh --region ${params.REGION} ${params.BUCKET}"
+                    sh "./publish-docs.py --region ${params.REGION} ${params.BUCKET}"
                 }
             }
         }
