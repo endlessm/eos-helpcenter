@@ -2,6 +2,7 @@ ARG BRANCH=master
 FROM registry.endlessm-sf.com/eos:${BRANCH}
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
+        eos-version-number \
         gir1.2-gnomedesktop-3.0 \
         gnome-getting-started-docs \
         gnome-user-guide \
