@@ -2,6 +2,7 @@
 
 SRCDIR=$(dirname "$0")
 DEST="$SRCDIR/build"
+XSL="$SRCDIR/build.xsl"
 
 function show_need_yelp() {
     echo "  ERROR: this script requires 'yelp-build'"
@@ -65,7 +66,7 @@ for doc_path in /usr/share/help/*/gnome-help; do
 
     echo -n "      $lang..."
 
-    yelp-build html -o "$doc_out" "$doc_path"/*.page
+    yelp-build html -o "$doc_out" -x "$XSL" "$doc_path"/*.page
 
     echo " OK"
 
