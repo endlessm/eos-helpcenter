@@ -43,6 +43,8 @@ ap.add_argument('-c', '--cloudfront',
 ap.add_argument('-d', '--builddir', default=BUILDDIR,
                 help='path to HTML build directory (default: %(default)s)')
 ap.add_argument('--region', help='AWS region of the S3 bucket')
+ap.add_argument('-f', '--force', action='store_true',
+                help='force publishing of all objects')
 ap.add_argument('-n', '--dry-run', action='store_true',
                 help='only show what would be published')
 ap.add_argument('--debug', action='store_true',
@@ -92,7 +94,7 @@ for key, doc in sorted(docs.items()):
 
     # See if there are any changes from an existing object.
     obj = objects.get(key)
-    if obj:
+    if obj and not args.force:
         logger.debug(
             f'Comparing {key} to existing S3 object, '
             f'local: size={doc["size"]}, e_tag={doc["e_tag"]}, '
@@ -142,22 +144,27 @@ elif args.cloudfront:
     # CloudFront is regionless, so don't specify a region.
     cloudfront = boto3.client('cloudfront')
 
-    # Build the paths to invalidate.
-    paths = []
-    for key in changed:
-        path = f'/{key}'
-        logger.info(f'Adding invalidation path {path}')
-        paths.append(path)
+    # Build the paths to invalidate. If --force was specified, then just
+    # invalidate the entire distribution.
+    if args.force:
+        logger.info(f'Adding invalidation path /*')
+        paths = ['/*']
+    else:
+        paths = []
+        for key in changed:
+            path = f'/{key}'
+            logger.info(f'Adding invalidation path {path}')
+            paths.append(path)
 
-        # The S3 bucket is setup for static website hosting with any
-        # URLs ending in / being treated as /index.html. Invalidate the
-        # nameless path, too.
-        if os.path.basename(path) == 'index.html':
-            keydir = os.path.dirname(path)
-            if keydir != '/':
-                keydir += '/'
-            logger.info(f'Adding invalidation path {keydir}')
-            paths.append(keydir)
+            # The S3 bucket is setup for static website hosting with any
+            # URLs ending in / being treated as /index.html. Invalidate
+            # the nameless path, too.
+            if os.path.basename(path) == 'index.html':
+                keydir = os.path.dirname(path)
+                if keydir != '/':
+                    keydir += '/'
+                logger.info(f'Adding invalidation path {keydir}')
+                paths.append(keydir)
 
     # Make a unique CallerReference value from the current time.
     caller_ref = str(time.time_ns())
