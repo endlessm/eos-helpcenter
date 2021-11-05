@@ -22,6 +22,7 @@ from argparse import ArgumentParser
 import boto3
 import hashlib
 import logging
+import magic
 import os
 import time
 
@@ -29,6 +30,11 @@ logger = logging.getLogger(os.path.basename(__file__))
 
 SRCDIR = os.path.dirname(__file__)
 BUILDDIR = os.path.join(SRCDIR, 'build')
+EXT_MIME_TYPES = {
+    '.css': 'text/css',
+    '.html': 'text/html',
+    '.js': 'text/javascript',
+}
 
 ap = ArgumentParser('Publish HTML documentation to S3 bucket')
 ap.add_argument('bucket', metavar='BUCKET', help='S3 bucket name')
@@ -107,10 +113,20 @@ for key, doc in sorted(docs.items()):
                 logger.debug(f'Skipping {key} upload, matching size')
                 continue
 
+    # Figure out the content type. libmagic sets many files to
+    # text/plain, so first we do some simple file extension matching.
+    file_ext = os.path.splitext(doc['path'])[1]
+    content_type = EXT_MIME_TYPES.get(file_ext)
+    if not content_type:
+        # Use libmagic to get the type.
+        content_type = magic.from_file(doc['path'], mime=True)
+    logger.debug(f'Using ContentType {content_type} for {key}')
+
     logger.info(f'Uploading {key}')
     changed.append(key)
     if not args.dry_run:
-        bucket.upload_file(doc['path'], key)
+        bucket.upload_file(doc['path'], key,
+                           ExtraArgs={'ContentType': content_type})
 
 # Delete any objects that are in S3 but not in the generated docs.
 for key in objects.keys() - docs.keys():
