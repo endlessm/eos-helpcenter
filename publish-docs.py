@@ -22,6 +22,7 @@ from argparse import ArgumentParser
 import boto3
 import hashlib
 import logging
+import magic
 import os
 import time
 
@@ -29,6 +30,11 @@ logger = logging.getLogger(os.path.basename(__file__))
 
 SRCDIR = os.path.dirname(__file__)
 BUILDDIR = os.path.join(SRCDIR, 'build')
+EXT_MIME_TYPES = {
+    '.css': 'text/css',
+    '.html': 'text/html',
+    '.js': 'text/javascript',
+}
 
 ap = ArgumentParser('Publish HTML documentation to S3 bucket')
 ap.add_argument('bucket', metavar='BUCKET', help='S3 bucket name')
@@ -37,6 +43,8 @@ ap.add_argument('-c', '--cloudfront',
 ap.add_argument('-d', '--builddir', default=BUILDDIR,
                 help='path to HTML build directory (default: %(default)s)')
 ap.add_argument('--region', help='AWS region of the S3 bucket')
+ap.add_argument('-f', '--force', action='store_true',
+                help='force publishing of all objects')
 ap.add_argument('-n', '--dry-run', action='store_true',
                 help='only show what would be published')
 ap.add_argument('--debug', action='store_true',
@@ -86,7 +94,7 @@ for key, doc in sorted(docs.items()):
 
     # See if there are any changes from an existing object.
     obj = objects.get(key)
-    if obj:
+    if obj and not args.force:
         logger.debug(
             f'Comparing {key} to existing S3 object, '
             f'local: size={doc["size"]}, e_tag={doc["e_tag"]}, '
@@ -107,10 +115,20 @@ for key, doc in sorted(docs.items()):
                 logger.debug(f'Skipping {key} upload, matching size')
                 continue
 
+    # Figure out the content type. libmagic sets many files to
+    # text/plain, so first we do some simple file extension matching.
+    file_ext = os.path.splitext(doc['path'])[1]
+    content_type = EXT_MIME_TYPES.get(file_ext)
+    if not content_type:
+        # Use libmagic to get the type.
+        content_type = magic.from_file(doc['path'], mime=True)
+    logger.debug(f'Using ContentType {content_type} for {key}')
+
     logger.info(f'Uploading {key}')
     changed.append(key)
     if not args.dry_run:
-        bucket.upload_file(doc['path'], key)
+        bucket.upload_file(doc['path'], key,
+                           ExtraArgs={'ContentType': content_type})
 
 # Delete any objects that are in S3 but not in the generated docs.
 for key in objects.keys() - docs.keys():
@@ -126,22 +144,27 @@ elif args.cloudfront:
     # CloudFront is regionless, so don't specify a region.
     cloudfront = boto3.client('cloudfront')
 
-    # Build the paths to invalidate.
-    paths = []
-    for key in changed:
-        path = f'/{key}'
-        logger.info(f'Adding invalidation path {path}')
-        paths.append(path)
+    # Build the paths to invalidate. If --force was specified, then just
+    # invalidate the entire distribution.
+    if args.force:
+        logger.info(f'Adding invalidation path /*')
+        paths = ['/*']
+    else:
+        paths = []
+        for key in changed:
+            path = f'/{key}'
+            logger.info(f'Adding invalidation path {path}')
+            paths.append(path)
 
-        # The S3 bucket is setup for static website hosting with any
-        # URLs ending in / being treated as /index.html. Invalidate the
-        # nameless path, too.
-        if os.path.basename(path) == 'index.html':
-            keydir = os.path.dirname(path)
-            if keydir != '/':
-                keydir += '/'
-            logger.info(f'Adding invalidation path {keydir}')
-            paths.append(keydir)
+            # The S3 bucket is setup for static website hosting with any
+            # URLs ending in / being treated as /index.html. Invalidate
+            # the nameless path, too.
+            if os.path.basename(path) == 'index.html':
+                keydir = os.path.dirname(path)
+                if keydir != '/':
+                    keydir += '/'
+                logger.info(f'Adding invalidation path {keydir}')
+                paths.append(keydir)
 
     # Make a unique CallerReference value from the current time.
     caller_ref = str(time.time_ns())
