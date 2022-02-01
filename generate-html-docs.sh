@@ -43,7 +43,7 @@ while true; do
     esac
 done
 
-yelp-build --help >/dev/null 2>&1 || show_need_yelp
+command -v yelp-build >/dev/null 2>&1 || show_need_yelp
 
 echo ""
 echo "  Endless OS Doc2HTML script"
