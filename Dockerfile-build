@@ -1,5 +1,5 @@
 ARG BRANCH=master
-FROM registry.endlessm-sf.com/eos:${BRANCH}
+FROM docker.io/endlessm/eos:${BRANCH}
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         gir1.2-gnomedesktop-3.0 \
