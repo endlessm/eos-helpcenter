@@ -166,6 +166,20 @@ elif args.cloudfront:
                 logger.info(f'Adding invalidation path {keydir}')
                 paths.append(keydir)
 
+    # CloudFront allows up to 3000 maximum concurrent invalidation
+    # files. Since we might have a couple concurrent builds going,
+    # switch to the full distribution invalidation at 1000 paths. The
+    # only time we even approach this is when switching branches and in
+    # that case we might as well invalidate everything.
+    #
+    # https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/Invalidation.html#InvalidationLimits
+    if len(paths) >= 1000:
+        logger.warning(
+            f'{len(paths)} invalidation paths may exceed CloudFront limit. '
+            'Using full /* invalidation path instead.'
+        )
+        paths = ['/*']
+
     # Make a unique CallerReference value from the current time.
     caller_ref = str(time.time_ns())
 
