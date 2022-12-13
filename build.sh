@@ -48,5 +48,7 @@ $PODMAN build --pull -t "$TAG" --build-arg "BRANCH=${BRANCH}" \
 
 # Build the docs in the container.
 ABSSRC=$(readlink -f "$SRC")
-$PODMAN run --rm -v "$ABSSRC:/src" -w /src "$TAG" ./generate-html-docs.sh
-$PODMAN run --rm -v "$ABSSRC:/src" -w /src "$TAG" ./generate-index.py
+$PODMAN run --rm -v "$ABSSRC:/src" -w /src "$TAG" \
+    ./generate-html-docs.sh -b "$BRANCH"
+$PODMAN run --rm -v "$ABSSRC:/src" -w /src "$TAG" \
+    ./generate-index.py -b "$BRANCH"
