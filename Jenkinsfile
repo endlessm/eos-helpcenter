@@ -2,7 +2,11 @@ pipeline {
     agent {
         dockerfile {
             filename 'Dockerfile-build'
-            additionalBuildArgs "--build-arg BRANCH=${params.BRANCH}"
+
+            // Since the build depends on the packaged tools and
+            // documents, add --pull and --no-cache to ensure the
+            // current packages are always used.
+            additionalBuildArgs "--pull --no-cache --build-arg BRANCH=${params.BRANCH}"
         }
     }
 
