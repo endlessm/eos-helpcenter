@@ -9,7 +9,7 @@ import jinja2
 import sys
 
 gi.require_version('GnomeDesktop', '3.0')
-from gi.repository import GnomeDesktop
+from gi.repository import GnomeDesktop  # noqa: E402
 
 SRCDIR = os.path.dirname(__file__)
 DEFAULT_BUILDDIR = os.path.join(SRCDIR, 'build')
@@ -18,12 +18,15 @@ ap = ArgumentParser(description='Generate helpcenter index page')
 ap.add_argument('-d', '--builddir', metavar='DIR', default=DEFAULT_BUILDDIR,
                 help=(f'path to HTML build directory '
                       f'(default: {DEFAULT_BUILDDIR})'))
+ap.add_argument('-b', '--branch', help='build in BRANCH subdirectory')
 ap.add_argument('-f', '--force', action='store_true',
                 help='overwrite existing index.html')
 ap.add_argument('-n', '--dry-run', action='store_true',
                 help='only show the generated HTML')
 args = ap.parse_args()
 
+if args.branch:
+    args.builddir = os.path.join(args.builddir, args.branch)
 index_path = os.path.join(args.builddir, 'index.html')
 if not (args.dry_run or args.force) and os.path.exists(index_path):
     print(f'error: {index_path} already exists', file=sys.stderr)

@@ -9,8 +9,8 @@ pipeline {
     stages {
         stage('Build') {
             steps {
-                sh './generate-html-docs.sh'
-                sh './generate-index.py'
+                sh './generate-html-docs.sh -b "$BRANCH"'
+                sh './generate-index.py -b "$BRANCH"'
             }
         }
 
@@ -20,7 +20,7 @@ pipeline {
                                   credentialsId: 'iam-user-jenkins-jobs',
                                   accessKeyVariable: 'AWS_ACCESS_KEY_ID',
                                   secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
-                    sh "./publish-docs.py --region ${params.REGION} ${params.DISTRIBUTION ? "--cloudfront ${params.DISTRIBUTION}" : ""} ${params.BUCKET}"
+                    sh "./publish-docs.py -b ${params.BRANCH} --region ${params.REGION} ${params.DISTRIBUTION ? "--cloudfront ${params.DISTRIBUTION}" : ""} ${params.BUCKET}"
                 }
             }
         }

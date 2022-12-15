@@ -42,6 +42,7 @@ ap.add_argument('-c', '--cloudfront',
                 help='CloudFront distribution ID for invalidation')
 ap.add_argument('-d', '--builddir', default=BUILDDIR,
                 help='path to HTML build directory (default: %(default)s)')
+ap.add_argument('-b', '--branch', help='publish only BRANCH subdirectory')
 ap.add_argument('--region', help='AWS region of the S3 bucket')
 ap.add_argument('-f', '--force', action='store_true',
                 help='force publishing of all objects')
@@ -64,9 +65,13 @@ s3 = boto3.resource('s3', region_name=args.region)
 bucket = s3.Bucket(args.bucket)
 
 # Collect all the generated docs into a dictionary.
-logger.info('Finding docs files in directory %s', args.builddir)
+if args.branch:
+    walkdir = os.path.join(args.builddir, args.branch)
+else:
+    walkdir = args.builddir
+logger.info('Finding docs files in directory %s', walkdir)
 docs = {}
-for root, dirs, files in os.walk(args.builddir):
+for root, dirs, files in os.walk(walkdir):
     for name in files:
         path = os.path.join(root, name)
         key = os.path.relpath(path, args.builddir)
@@ -80,10 +85,18 @@ for root, dirs, files in os.walk(args.builddir):
 
 # Collect all the current objects and their ETags in the bucket into a
 # dictionary.
-logger.info('Finding current objects in bucket %s', args.bucket)
-objects = dict([
-    (obj.key, obj) for obj in bucket.objects.all()
-])
+if args.branch:
+    logger.info(
+        'Finding current objects in bucket %s directory %s',
+        args.bucket,
+        args.branch,
+    )
+    objects_iter = bucket.objects.filter(Prefix=f'{args.branch}/')
+else:
+    logger.info('Finding current objects in bucket %s', args.bucket)
+    objects_iter = bucket.objects.all()
+
+objects = dict([(obj.key, obj) for obj in objects_iter])
 
 # Keep a list of changed objects.
 changed = []
@@ -147,7 +160,7 @@ elif args.cloudfront:
     # Build the paths to invalidate. If --force was specified, then just
     # invalidate the entire distribution.
     if args.force:
-        logger.info(f'Adding invalidation path /*')
+        logger.info('Adding invalidation path /*')
         paths = ['/*']
     else:
         paths = []

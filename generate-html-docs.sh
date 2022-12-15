@@ -2,6 +2,7 @@
 
 SRCDIR=$(dirname "$0")
 DEST="$SRCDIR/build"
+BRANCH=
 XSL="$SRCDIR/build.xsl"
 
 function show_need_yelp() {
@@ -17,13 +18,15 @@ function show_need_yelp() {
 
 function usage() {
     cat <<EOF
-Usage: $0 [OPTION]... SRC DEST
+Usage: $0 [OPTION]...
 
-  -h, --help        display this help and exit
+  -o, --outdir OUTDIR	directory to build docs (default: $DEST)
+  -b, --branch BRANCH	build in BRANCH subdirectory
+  -h, --help		display this help and exit
 EOF
 }
 
-ARGS=$(getopt -o o:h -l outdir:,help -n "$0" -- "$@")
+ARGS=$(getopt -o o:b:h -l outdir:,branch:,help -n "$0" -- "$@")
 eval set -- "$ARGS"
 
 while true; do
@@ -32,6 +35,10 @@ while true; do
 	    DEST=$2
 	    shift 2
 	    ;;
+        -b|--branch)
+            BRANCH=$2
+            shift 2
+            ;;
         -h|--help)
             usage
             exit 0
@@ -48,6 +55,11 @@ command -v yelp-build >/dev/null 2>&1 || show_need_yelp
 echo ""
 echo "  Endless OS Doc2HTML script"
 echo ""
+
+# Build to branch specific subdir if specified.
+if [ -n "$BRANCH" ]; then
+    DEST="$DEST/$BRANCH"
+fi
 
 # Delete existing build directory
 if [ -d "$DEST" ]; then
